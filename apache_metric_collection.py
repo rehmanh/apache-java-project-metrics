@@ -1,7 +1,7 @@
 import subprocess
 import shutil
 import csv
-import ApacheProjectRepos
+import apache_project_repos
 from datetime import datetime
 
 BASE_URL = 'https://github.com/apache'
@@ -11,8 +11,7 @@ class ApacheMetricCollection:
         pass
 
     def generate_project_repo_list(self) -> list:
-        obj = ApacheProjectRepos.ApacheProjectRepos()
-        #obj = TestApacheRepos.TestApacheRepos()
+        obj = apache_project_repos.ApacheProjectRepos()
         repo_names = [getattr(obj, x) for x in dir(obj) if not x.startswith("__")]
         repos = []
         for repo_name in repo_names:
@@ -46,11 +45,11 @@ class ApacheMetricCollection:
                 num_source_files = self.get_num_source_files(name)
                 num_source_loc = self.get_source_loc(name)
                 first_revision_date = self.get_first_commit_date(name)
-                self.write_data_to_csv(name, num_revisions, num_authors, num_source_files, num_source_loc, first_revision_date)
+                self.write_data_to_csv('ApacheGitLogMetrics.csv', name, num_revisions, num_authors, num_source_files, num_source_loc, first_revision_date)
             elif(process.poll() == 128):
                 # clone unsuccessful -- print error and continue
                 print(f"Repository for project {name} was not found on GitHub")
-                self.write_data_to_csv(name, 0, 0, 0, 0, 0)
+                self.write_data_to_csv('ApacheGitLogMetrics.csv', name, 0, 0, 0, 0, 0)
 
             print(f"Collected metrics for {name}; removing the directory ./repositories/{name}...\n")
             self.remove_repo_directory(name)
@@ -171,23 +170,21 @@ class ApacheMetricCollection:
     def remove_repo_directory(self, dir_name: str) -> None:
         shutil.rmtree(f"./repositories/{dir_name}", ignore_errors=True)
     
-    def write_data_to_csv(self, repo_name: str, num_revisions: int, num_authors: str, num_source_files: int, num_source_loc: int, first_revision_date: str) -> None:
-        with open('csv/ApacheProjectMetrics.csv', 'a') as file:
+    def write_data_to_csv(self, file_name: str, repo_name: str, num_revisions: int, num_authors: str, num_source_files: int, num_source_loc: int, first_revision_date: str) -> None:
+        with open('csv/{}'.format(file_name), 'a') as file:
             writer = csv.writer(file, csv.QUOTE_NONNUMERIC)
             writer.writerow([repo_name, num_revisions, num_authors, num_source_files, num_source_loc, first_revision_date])
     
-    def create_csv_file(self) -> None:
-        with open('csv/ApacheProjectMetrics.csv', 'w') as file:
+    def create_csv_file(self, file_name: str) -> None:
+        with open('csv/{}'.format(file_name), 'w') as file:
             writer = csv.writer(file, csv.QUOTE_NONNUMERIC)
             writer.writerow(['Project Name', 'Number of Revisions', 'Number of Authors', 'Number of Source Files', 'Number of Source LOC', 'Date of First Commit'])
-        
 
+            
 if __name__ == '__main__':
     print('Beginning collecting Git data for Apache Java Projects\n')
     metricCollection = ApacheMetricCollection()
-    # create empty file
-    metricCollection.create_csv_file()
-
+    metricCollection.create_csv_file('ApacheGitLogMetrics.csv')
     repos = metricCollection.generate_project_repo_list()
     metricCollection.clone_and_process_gh_repos(repos)
     
